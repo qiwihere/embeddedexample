@@ -1,0 +1,23 @@
+image: node:10
+stages:
+  - deploy
+deploy build:
+  stage: deploy
+  variables:
+    HOST: herold.dev.digital-grow.ru
+    PORT: 22112
+    USR: herold
+    DEPLOY_PATH: /var/www/herold/
+  script:
+    - 'apt update -y && apt install openssh-client -y'
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo $SSH_KEY | sed 's/ /\'$'\n/g' | base64 -d | ssh-add - > /dev/null
+    - ssh-keyscan -p $PORT -H $HOST > ~/.ssh/known_hosts
+    - npm install
+    - npm run embedded
+    - scp -P $PORT -r $(pwd)/embedded $USR@$HOST:$DEPLOY_PATH
+  only:
+    - master
+  when: always
